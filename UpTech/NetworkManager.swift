@@ -40,7 +40,9 @@ class NetworkManager {
                 URLQueryItem(name: "page", value: pageNumber.description)
             ]
             
-            var urlRequest = URLRequest(url: urlComponents.url!)
+            guard let url = urlComponents.url else { return Disposables.create() }
+            
+            var urlRequest = URLRequest(url: url)
             urlRequest.addValue(NetworkManager.kApiKey, forHTTPHeaderField: "Authorization")
             
             wself.session.dataTask(with: urlRequest) { data, response, error in

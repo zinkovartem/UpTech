@@ -12,20 +12,18 @@ import CoreData
 class DataStorageManager: NSObject {
     
     public static let shared = DataStorageManager()
-    private(set) var context: NSManagedObjectContext!
     private(set) var persistentContainer: NSPersistentContainer!
 
     override init() {
-        let delegate = UIApplication.shared.delegate as! AppDelegate
+        let delegate = UIApplication.shared.delegate as! AppDelegate // Considering - this will never crash
         persistentContainer = delegate.persistentContainer
-        context = delegate.persistentContainer.newBackgroundContext()
     }
     
     func getAllArticles() -> [ArticleModel] {
         let request: NSFetchRequest<ArticleManagedObject> = ArticleManagedObject.fetchRequest()
         var articleModels: [ArticleModel] = []
         
-        if let articleManagedObjects = try? context.fetch(request) {
+        if let articleManagedObjects = try? persistentContainer.viewContext.fetch(request) {
             for articleMO in articleManagedObjects {
                 let articleModel = ArticleModel(from: articleMO)
                 articleModels.append(articleModel)
@@ -35,7 +33,7 @@ class DataStorageManager: NSObject {
         return articleModels
     }
     
-    func getArticle(with title: String) -> ArticleManagedObject? {
+    func getArticle(with title: String, from context: NSManagedObjectContext) -> ArticleManagedObject? {
         let request: NSFetchRequest<ArticleManagedObject> = ArticleManagedObject.fetchRequest()
         request.predicate = NSPredicate(format: "title == %@", title) // Considering title as ID of article
         
@@ -49,8 +47,8 @@ class DataStorageManager: NSObject {
     func saveArticle(_ article: ArticleModel) {
         
         persistentContainer.performBackgroundTask { [weak self] context in
-            let entity = NSEntityDescription.entity(forEntityName: "ArticleManagedObject", in: context)
-            let newArticle = self?.getArticle(with: article.title) ?? NSManagedObject(entity: entity!, insertInto: context)
+            guard let entity = NSEntityDescription.entity(forEntityName: "ArticleManagedObject", in: context) else { return }
+            let newArticle = self?.getArticle(with: article.title, from: context) ?? NSManagedObject(entity: entity, insertInto: context)
             
             newArticle.setValue(article.title, forKey: "title")
             newArticle.setValue(article.content, forKey: "content")
