@@ -22,7 +22,10 @@ class ArticleModel: Decodable, ArticleModelProtocol {
         description = managedObject.articleDescription ?? ""
         content = managedObject.content ?? ""
         publishedAt = managedObject.publishedAt
-        imageData.accept(managedObject.imageData)
+        
+        if let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent(managedObject.imageName ?? "") {
+            imageData.accept(try? Data(contentsOf: url))
+        }
     }
     
     enum CodingKeys: String, CodingKey {

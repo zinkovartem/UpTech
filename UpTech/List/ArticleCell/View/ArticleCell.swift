@@ -13,14 +13,16 @@ class ArticleCell: UITableViewCell {
     
     static let reuseIdentifier = "ArticleCell"
     static let cellHeight: CGFloat = 120
+    static let formatter = DateFormatter()
     
     @IBOutlet weak var articleImageView: UIImageView!
     @IBOutlet weak var articleTitleLabel: UILabel!
     @IBOutlet weak var articleDescriptionTextView: UITextView!
     @IBOutlet weak var articleDateLabel: UILabel!
     
-    private let disposeBag = DisposeBag()
-    
+    private(set) var disposeBag = DisposeBag()
+    private var viewModel: ArticleViewModelProtocol!
+
     override func prepareForReuse() {
         super.prepareForReuse()
         
@@ -28,17 +30,18 @@ class ArticleCell: UITableViewCell {
         articleTitleLabel.text = nil
         articleDescriptionTextView.text = nil
         articleDateLabel.text = nil
+        disposeBag = DisposeBag()
     }
     
     func setup(with viewModel: ArticleViewModelProtocol) {
         
+        self.viewModel = viewModel
         articleTitleLabel.text = viewModel.articleTitle
         articleDescriptionTextView.text = viewModel.articleDescription
         
         if let articleDate = viewModel.articleDate {
-            let formatted = DateFormatter()
-            formatted.dateFormat = "dd MMMM yyyy"
-            articleDateLabel.text = "Date: \(formatted.string(from: articleDate))"
+            ArticleCell.formatter.dateFormat = "dd MMMM yyyy"
+            articleDateLabel.text = "Date: \(ArticleCell.formatter.string(from: articleDate))"
         }
         
         viewModel.articleImage.asObservable().subscribe(onNext: { [weak self] image in

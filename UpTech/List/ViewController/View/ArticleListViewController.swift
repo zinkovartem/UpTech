@@ -25,12 +25,14 @@ class ArticleListViewController: UIViewController {
         let model = ArticleListModel()
         viewModel = ArticleListViewModel(model)
         
-        viewModel.articles.asObservable().subscribe(onNext: { _ in
-            DispatchQueue.main.async {
+        viewModel.articles
+            .asObservable()
+            .observeOn(MainScheduler.instance)
+            .subscribe(onNext: { _ in
+                
                 self.tableView.reloadData()
                 if self.refreshControl.isRefreshing { self.refreshControl.endRefreshing() }
                 if self.activityIndicator.isAnimating { self.activityIndicator.stopAnimating() }
-            }
         }).disposed(by: disposeBag)
         
         refreshControl.attributedTitle = NSAttributedString(string: "Pull to refresh")

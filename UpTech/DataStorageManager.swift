@@ -12,25 +12,26 @@ import CoreData
 class DataStorageManager: NSObject {
     
     public static let shared = DataStorageManager()
-    private(set) var persistentContainer: NSPersistentContainer!
-
-    override init() {
-        let delegate = UIApplication.shared.delegate as! AppDelegate // Considering - this will never crash
-        persistentContainer = delegate.persistentContainer
-    }
+    
+    private var imagePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+    private lazy var persistentContainer: NSPersistentContainer = {
+        let container = NSPersistentContainer(name: "UpTech")
+        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
+            if let error = error as NSError? {
+                fatalError("Unresolved error \(error), \(error.userInfo)")
+            }
+        })
+        return container
+    }()
     
     func getAllArticles() -> [ArticleModel] {
         let request: NSFetchRequest<ArticleManagedObject> = ArticleManagedObject.fetchRequest()
-        var articleModels: [ArticleModel] = []
         
         if let articleManagedObjects = try? persistentContainer.viewContext.fetch(request) {
-            for articleMO in articleManagedObjects {
-                let articleModel = ArticleModel(from: articleMO)
-                articleModels.append(articleModel)
-            }
+            return articleManagedObjects.map { ArticleModel(from: $0) }
         }
         
-        return articleModels
+        return []
     }
     
     func getArticle(with title: String, from context: NSManagedObjectContext) -> ArticleManagedObject? {
@@ -47,16 +48,20 @@ class DataStorageManager: NSObject {
     func saveArticle(_ article: ArticleModel) {
         
         persistentContainer.performBackgroundTask { [weak self] context in
-            guard let entity = NSEntityDescription.entity(forEntityName: "ArticleManagedObject", in: context) else { return }
+            guard let entity = NSEntityDescription.entity(forEntityName: "ArticleManagedObject", in: context),
+                let imagePath = self?.imagePath
+                else { return }
+            
             let newArticle = self?.getArticle(with: article.title, from: context) ?? NSManagedObject(entity: entity, insertInto: context)
             
             newArticle.setValue(article.title, forKey: "title")
             newArticle.setValue(article.content, forKey: "content")
             newArticle.setValue(article.description, forKey: "articleDescription")
             newArticle.setValue(article.publishedAt, forKey: "publishedAt")
-            newArticle.setValue(article.imageData.value, forKey: "imageData")
+            newArticle.setValue(article.title, forKey: "imageName")
             
             do {
+                try article.imageData.value?.write(to: imagePath.appendingPathComponent(article.title))
                 try context.save()
             } catch {
                 print("false")
